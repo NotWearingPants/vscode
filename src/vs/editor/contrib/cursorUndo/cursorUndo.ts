@@ -84,11 +84,12 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 	}
 
 	public cursorUndo(): void {
-		if (!this._editor.hasModel()) {
+		const currState = this._readState();
+
+		// there is nothing to do if there is no state
+		if (currState === null) {
 			return;
 		}
-
-		const currState = new CursorState(this._editor.getSelections());
 
 		while (this._undoStack.length > 0) {
 			const prevState = this._undoStack.pop()!;
