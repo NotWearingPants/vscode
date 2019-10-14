@@ -26,6 +26,52 @@ class CursorState {
 	}
 }
 
+class CursorStateStack {
+	private _undoStack: CursorState[];
+	private _prevState: CursorState | null;
+
+	constructor(initialState: CursorState | null) {
+		this._undoStack = [];
+		this._prevState = initialState;
+	}
+
+	public onStateUpdate(newState: CursorState | null): void {
+		if (this._prevState) {
+			this._undoStack.push(this._prevState);
+			if (this._undoStack.length > 50) {
+				// keep the cursor undo stack bounded
+				this._undoStack.shift();
+			}
+		}
+
+		this._prevState = newState;
+	}
+
+	public undo(currState: CursorState): CursorState | null {
+		while (this._undoStack.length > 0) {
+			const prevState = this._undoStack.pop()!;
+
+			if (!prevState.equals(currState)) {
+				this._prevState = prevState;
+
+				return prevState;
+			}
+		}
+
+		return null;
+	}
+
+	public redo(currState: CursorState): CursorState | null {
+		// TODO: implement
+		return null;
+	}
+
+	public reset(): void {
+		this._undoStack = [];
+		this._prevState = null;
+	}
+}
+
 export class CursorUndoController extends Disposable implements IEditorContribution {
 
 	private static readonly ID = 'editor.contrib.cursorUndoController';
@@ -35,39 +81,32 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 	}
 
 	private readonly _editor: ICodeEditor;
-	private _isCursorUndo: boolean;
-
-	private _undoStack: CursorState[];
-	private _prevState: CursorState | null;
+	private _isChangingState: boolean;
+	private _cursorStateStack: CursorStateStack;
 
 	constructor(editor: ICodeEditor) {
 		super();
 		this._editor = editor;
-		this._isCursorUndo = false;
+		this._isChangingState = false;
 
-		this._undoStack = [];
-		this._prevState = this._readState();
+		this._cursorStateStack = new CursorStateStack(this._readState());
 
 		this._register(editor.onDidChangeModel((e) => {
-			this._undoStack = [];
-			this._prevState = null;
+			this._cursorStateStack.reset();
 		}));
 		this._register(editor.onDidChangeModelContent((e) => {
-			this._undoStack = [];
-			this._prevState = null;
+			this._cursorStateStack.reset();
 		}));
 		this._register(editor.onDidChangeCursorSelection((e) => {
-
-			if (!this._isCursorUndo && this._prevState) {
-				this._undoStack.push(this._prevState);
-				if (this._undoStack.length > 50) {
-					// keep the cursor undo stack bounded
-					this._undoStack.shift();
-				}
+			// don't push the state again if we were the ones who changed the state
+			if (!this._isChangingState) {
+				this._cursorStateStack.onStateUpdate(this._readState());
 			}
-
-			this._prevState = this._readState();
 		}));
+	}
+
+	public getId(): string {
+		return CursorUndoController.ID;
 	}
 
 	private _readState(): CursorState | null {
@@ -79,11 +118,7 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 		return new CursorState(this._editor.getSelections());
 	}
 
-	public getId(): string {
-		return CursorUndoController.ID;
-	}
-
-	public cursorUndo(): void {
+	private _updateCursorState(stateUpdateFunc: (currState: CursorState) => CursorState | null): void {
 		const currState = this._readState();
 
 		// there is nothing to do if there is no state
@@ -91,21 +126,26 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 			return;
 		}
 
-		while (this._undoStack.length > 0) {
-			const prevState = this._undoStack.pop()!;
+		// calculate the new state from the old state
+		const newState = stateUpdateFunc(currState);
 
-			if (!prevState.equals(currState)) {
-				this._isCursorUndo = true;
-				this._editor.setSelections(prevState.selections);
-				this._editor.revealRangeInCenterIfOutsideViewport(prevState.selections[0], ScrollType.Smooth);
-				this._isCursorUndo = false;
-				return;
-			}
+		if (newState === null) {
+			return;
 		}
+
+		this._isChangingState = true;
+		this._editor.setSelections(newState.selections);
+		this._isChangingState = false;
+
+		this._editor.revealRangeInCenterIfOutsideViewport(newState.selections[0], ScrollType.Smooth);
+	}
+
+	public cursorUndo(): void {
+		this._updateCursorState(this._cursorStateStack.undo.bind(this._cursorStateStack));
 	}
 
 	public cursorRedo(): void {
-		// TODO: implement
+		this._updateCursorState(this._cursorStateStack.redo.bind(this._cursorStateStack));
 	}
 }
 
