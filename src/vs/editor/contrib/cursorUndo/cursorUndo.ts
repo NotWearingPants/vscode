@@ -49,21 +49,19 @@ class CursorStateStack {
 		this._prevState = newState;
 	}
 
-	public undo(currState: CursorState): CursorState | null {
-		while (this._undoStack.length > 0) {
-			const prevState = this._undoStack.pop()!;
-
-			if (!prevState.equals(currState)) {
-				this._prevState = prevState;
-
-				return prevState;
-			}
+	public undo(): CursorState | null {
+		// don't change anything if there is nothing in the undo stack
+		if (this._undoStack.length === 0) {
+			return null;
 		}
 
-		return null;
+		// pop the latest state from the undo stack and return it
+		const prevState = this._undoStack.pop()!;
+		this._prevState = prevState;
+		return prevState;
 	}
 
-	public redo(currState: CursorState): CursorState | null {
+	public redo(): CursorState | null {
 		// TODO: implement
 		return null;
 	}
@@ -94,6 +92,7 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 		this._cursorStateStack = new CursorStateStack(this._readState());
 
 		this._register(editor.onDidChangeModel((e) => {
+			// TODO: check if editor has a model now and disable undo/redo if not
 			this._cursorStateStack.reset();
 		}));
 		this._register(editor.onDidChangeModelContent((e) => {
@@ -102,7 +101,8 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 		this._register(editor.onDidChangeCursorSelection((e) => {
 			// don't push the state again if we were the ones who changed the state
 			if (!this._isChangingState) {
-				this._cursorStateStack.onStateUpdate(this._readState());
+				const newState = this._readState();
+				this._cursorStateStack.onStateUpdate(newState);
 			}
 		}));
 	}
@@ -120,35 +120,27 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 		return new CursorState(this._editor.getSelections());
 	}
 
-	private _updateCursorState(stateUpdateFunc: (currState: CursorState) => CursorState | null): void {
-		const currState = this._readState();
-
-		// there is nothing to do if there is no state
-		if (currState === null) {
-			return;
-		}
-
-		// calculate the new state from the old state
-		const newState = stateUpdateFunc(currState);
-
+	private _updateCursorState(newState: CursorState | null): void {
 		// null means the state should not change
 		if (newState === null) {
 			return;
 		}
 
+		// change the selections in the editor to match the new state
 		this._isChangingState = true;
 		this._editor.setSelections(newState.selections);
 		this._isChangingState = false;
 
+		// reveal the new primary selection if necessary
 		this._editor.revealRangeInCenterIfOutsideViewport(newState.selections[0], ScrollType.Smooth);
 	}
 
 	public cursorUndo(): void {
-		this._updateCursorState(this._cursorStateStack.undo.bind(this._cursorStateStack));
+		this._updateCursorState(this._cursorStateStack.undo());
 	}
 
 	public cursorRedo(): void {
-		this._updateCursorState(this._cursorStateStack.redo.bind(this._cursorStateStack));
+		this._updateCursorState(this._cursorStateStack.redo());
 	}
 }
 
