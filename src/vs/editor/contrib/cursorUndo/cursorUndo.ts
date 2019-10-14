@@ -27,6 +27,8 @@ class CursorState {
 }
 
 class CursorStateStack {
+	private static readonly STACK_SIZE_LIMIT = 50;
+
 	private _undoStack: CursorState[];
 	private _prevState: CursorState | null;
 
@@ -38,7 +40,7 @@ class CursorStateStack {
 	public onStateUpdate(newState: CursorState | null): void {
 		if (this._prevState) {
 			this._undoStack.push(this._prevState);
-			if (this._undoStack.length > 50) {
+			if (this._undoStack.length > CursorStateStack.STACK_SIZE_LIMIT) {
 				// keep the cursor undo stack bounded
 				this._undoStack.shift();
 			}
