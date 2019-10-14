@@ -131,6 +131,7 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 		// calculate the new state from the old state
 		const newState = stateUpdateFunc(currState);
 
+		// null means the state should not change
 		if (newState === null) {
 			return;
 		}
