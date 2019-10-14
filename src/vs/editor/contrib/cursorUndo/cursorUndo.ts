@@ -66,9 +66,9 @@ class CursorStateStack {
 		return null;
 	}
 
-	public reset(): void {
+	public reset(currentState: CursorState | null): void {
 		this._undoStack = [];
-		this._prevState = null;
+		this._prevState = currentState;
 	}
 }
 
@@ -91,13 +91,20 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 
 		this._cursorStateStack = new CursorStateStack(this._readState());
 
+		// reset stack on model changes
 		this._register(editor.onDidChangeModel((e) => {
 			// TODO: check if editor has a model now and disable undo/redo if not
-			this._cursorStateStack.reset();
+			const newState = this._readState();
+			this._cursorStateStack.reset(newState);
 		}));
+
+		// reset stack on content changes
 		this._register(editor.onDidChangeModelContent((e) => {
-			this._cursorStateStack.reset();
+			const newState = this._readState();
+			this._cursorStateStack.reset(newState);
 		}));
+
+		// update stack on cursor changes
 		this._register(editor.onDidChangeCursorSelection((e) => {
 			// don't push the state again if we were the ones who changed the state
 			if (!this._isChangingState) {
