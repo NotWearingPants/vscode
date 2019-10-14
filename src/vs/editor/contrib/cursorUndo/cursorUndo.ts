@@ -106,7 +106,7 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 
 		// update stack on cursor changes
 		this._register(editor.onDidChangeCursorSelection((e) => {
-			// don't push the state again if we were the ones who changed the state
+			// don't update the state if we we're the ones who changed the state
 			if (!this._isChangingState) {
 				const newState = this._readState();
 				this._cursorStateStack.onStateUpdate(newState);
