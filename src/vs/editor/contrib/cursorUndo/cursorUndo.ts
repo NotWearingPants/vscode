@@ -30,14 +30,14 @@ class CursorStateStack {
 	private static readonly STACK_SIZE_LIMIT = 50;
 
 	private _undoStack: CursorState[];
-	private _prevState: CursorState | null;
+	private _prevState: CursorState;
 
-	constructor(initialState: CursorState | null) {
+	constructor(initialState: CursorState) {
 		this._undoStack = [];
 		this._prevState = initialState;
 	}
 
-	public onStateUpdate(newState: CursorState | null): void {
+	public onStateUpdate(newState: CursorState): void {
 		if (this._prevState) {
 			this._undoStack.push(this._prevState);
 			if (this._undoStack.length > CursorStateStack.STACK_SIZE_LIMIT) {
@@ -66,7 +66,7 @@ class CursorStateStack {
 		return null;
 	}
 
-	public reset(currentState: CursorState | null): void {
+	public reset(currentState: CursorState): void {
 		this._undoStack = [];
 		this._prevState = currentState;
 	}
@@ -93,7 +93,6 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 
 		// reset stack on model changes
 		this._register(editor.onDidChangeModel((e) => {
-			// TODO: check if editor has a model now and disable undo/redo if not
 			const newState = this._readState();
 			this._cursorStateStack.reset(newState);
 		}));
@@ -118,13 +117,8 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 		return CursorUndoController.ID;
 	}
 
-	private _readState(): CursorState | null {
-		if (!this._editor.hasModel()) {
-			// no model => no state
-			return null;
-		}
-
-		return new CursorState(this._editor.getSelections());
+	private _readState(): CursorState {
+		return new CursorState(this._editor.getSelections() || []);
 	}
 
 	private _updateCursorState(newState: CursorState | null): void {
