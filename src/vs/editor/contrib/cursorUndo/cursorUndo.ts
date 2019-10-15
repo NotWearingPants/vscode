@@ -100,33 +100,39 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 	}
 
 	private readonly _editor: ICodeEditor;
-	private _isChangingState: boolean;
 	private readonly _cursorStateStack: CursorStateStack;
+	private _isChangingState: boolean;
+	private _isExpectingInitialCursorState: boolean;
 
 	constructor(editor: ICodeEditor) {
 		super();
 		this._editor = editor;
 		this._isChangingState = false;
+		this._isExpectingInitialCursorState = false;
 
 		// initialize the cursor state stack with the current state
 		this._cursorStateStack = new CursorStateStack(this._readState());
 
-		// reset stack on model changes
-		this._register(editor.onDidChangeModel((e) => {
-			const newState = this._readState();
-			this._cursorStateStack.reset(newState);
-		}));
-
-		// reset stack on content changes
-		this._register(editor.onDidChangeModelContent((e) => {
-			const newState = this._readState();
-			this._cursorStateStack.reset(newState);
-		}));
+		// flush on model or content changes
+		this._register(editor.onDidChangeModel((e) => this._flush()));
+		this._register(editor.onDidChangeModelContent((e) => this._flush()));
 
 		// update stack on cursor changes
 		this._register(editor.onDidChangeCursorSelection((e) => {
+			// if we just flushed then this is actually the initial cursor state after it
+			if (this._isExpectingInitialCursorState) {
+				this._isExpectingInitialCursorState = false;
+
+				// reset the stack with the correct initial state
+				const newState = this._readState();
+				this._cursorStateStack.reset(newState);
+
+				return;
+			}
+
 			// don't update the state if we we're the ones who changed the state
 			if (!this._isChangingState) {
+				// update the stack with the new state
 				const newState = this._readState();
 				this._cursorStateStack.onStateUpdate(newState);
 			}
@@ -135,6 +141,16 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 
 	public getId(): string {
 		return CursorUndoController.ID;
+	}
+
+	private _flush(): void {
+		// the current cursor state is true to before the change, so we expect
+		// a cursor change event to follow, to get the correct initial cursor state
+		this._isExpectingInitialCursorState = true;
+
+		// reset the stack with the wrong initial state until we get the correct one
+		const newState = this._readState();
+		this._cursorStateStack.reset(newState);
 	}
 
 	private _readState(): CursorState {
