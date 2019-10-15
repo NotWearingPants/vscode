@@ -70,14 +70,23 @@ class CursorStateStack {
 		// move the position in history back
 		this._positionInHistory--;
 
-		// return the new current state, which used to be the previous state
-		const prevState = this._getCurrentState();
-		return prevState;
+		// return the new current state
+		const newState = this._getCurrentState();
+		return newState;
 	}
 
 	public redo(): CursorState | null {
-		// TODO: implement
-		return null;
+		// don't change anything if there are no states from the future
+		if (this._positionInHistory === this._cursorStateHistory.length - 1) {
+			return null;
+		}
+
+		// move the position in history forward
+		this._positionInHistory++;
+
+		// return the new current state
+		const newState = this._getCurrentState();
+		return newState;
 	}
 }
 
