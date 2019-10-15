@@ -30,6 +30,7 @@ class CursorStateStack {
 	private static readonly STACK_SIZE_LIMIT = 50;
 
 	private _cursorStateHistory: CursorState[];
+	private _positionInHistory: number;
 
 	constructor(initialState: CursorState) {
 		this.reset(initialState);
@@ -37,30 +38,37 @@ class CursorStateStack {
 
 	public reset(currentState: CursorState): void {
 		this._cursorStateHistory = [currentState];
+		this._positionInHistory = 0;
 	}
 
 	public onStateUpdate(newState: CursorState): void {
+		// delete all the history items that are in the future
+		this._cursorStateHistory.splice(this._positionInHistory + 1);
+
+		// add the new state and advance the position
 		this._cursorStateHistory.push(newState);
+		this._positionInHistory++;
 
 		// keep the cursor undo stack bounded
 		if (this._cursorStateHistory.length > CursorStateStack.STACK_SIZE_LIMIT) {
 			this._cursorStateHistory.shift();
+			this._positionInHistory--;
 		}
 	}
 
 	private _getCurrentState(): CursorState {
 		// the top-most item in the history is the current state
-		return this._cursorStateHistory[this._cursorStateHistory.length - 1]!;
+		return this._cursorStateHistory[this._positionInHistory]!;
 	}
 
 	public undo(): CursorState | null {
-		// don't change anything if there is nothing in the undo stack
-		if (this._cursorStateHistory.length === 1) {
+		// don't change anything if there are no states from the past
+		if (this._positionInHistory === 0) {
 			return null;
 		}
 
-		// remove the current state from the undo stack
-		this._cursorStateHistory.pop();
+		// move the position in history back
+		this._positionInHistory--;
 
 		// return the new current state, which used to be the previous state
 		const prevState = this._getCurrentState();
