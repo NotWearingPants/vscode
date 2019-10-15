@@ -169,7 +169,7 @@ export class CursorUndo extends EditorAction {
 	constructor() {
 		super({
 			id: 'cursorUndo',
-			label: nls.localize('cursor.undo', 'Soft Undo'),
+			label: nls.localize('cursor.undo', "Soft Undo"),
 			alias: 'Soft Undo',
 			precondition: undefined,
 			kbOpts: {
@@ -189,7 +189,7 @@ export class CursorRedo extends EditorAction {
 	constructor() {
 		super({
 			id: 'cursorRedo',
-			label: nls.localize('cursor.redo', 'Soft Redo'),
+			label: nls.localize('cursor.redo', "Soft Redo"),
 			alias: 'Soft Redo',
 			precondition: undefined,
 			kbOpts: {
