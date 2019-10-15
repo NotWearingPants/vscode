@@ -37,6 +37,7 @@ class CursorStateStack {
 	}
 
 	public reset(currentState: CursorState): void {
+		// initialize the history with the current state only
 		this._cursorStateHistory = [currentState];
 		this._positionInHistory = 0;
 	}
@@ -100,13 +101,14 @@ export class CursorUndoController extends Disposable implements IEditorContribut
 
 	private readonly _editor: ICodeEditor;
 	private _isChangingState: boolean;
-	private _cursorStateStack: CursorStateStack;
+	private readonly _cursorStateStack: CursorStateStack;
 
 	constructor(editor: ICodeEditor) {
 		super();
 		this._editor = editor;
 		this._isChangingState = false;
 
+		// initialize the cursor state stack with the current state
 		this._cursorStateStack = new CursorStateStack(this._readState());
 
 		// reset stack on model changes
