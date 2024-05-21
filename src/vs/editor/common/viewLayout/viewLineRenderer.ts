@@ -938,11 +938,11 @@ function _renderLine(input: ResolvedRenderLineInput, sb: StringBuilder): RenderL
 
 	let partDisplacement = 0;
 
-	if (containsRTL) {
-		sb.appendString('<span dir="ltr">');
-	} else {
+	// if (containsRTL) {
+	// 	sb.appendString('<span dir="ltr">');
+	// } else {
 		sb.appendString('<span>');
-	}
+	// }
 
 	for (let partIndex = 0, tokensLen = parts.length; partIndex < tokensLen; partIndex++) {
 

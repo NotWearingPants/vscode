@@ -143,6 +143,7 @@ export class ViewLines extends ViewPart implements IVisibleLinesHost<ViewLine>, 
 
 		PartFingerprints.write(this.domNode, PartFingerprint.ViewLines);
 		this.domNode.setClassName(`view-lines ${MOUSE_CURSOR_TEXT_CSS_CLASS_NAME}`);
+		this.domNode.domNode.style.direction = 'rtl';
 		applyFontInfo(this.domNode, fontInfo);
 
 		// --- width & height

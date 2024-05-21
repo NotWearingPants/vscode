@@ -22,7 +22,7 @@ import { DomReadingContext } from 'vs/editor/browser/viewParts/lines/domReadingC
 const canUseFastRenderedViewLine = (function () {
 	if (platform.isNative) {
 		// In VSCode we know very well when the zoom level changes
-		return true;
+		return false;
 	}
 
 	if (platform.isLinux || browser.isFirefox || browser.isSafari) {
@@ -40,7 +40,7 @@ const canUseFastRenderedViewLine = (function () {
 		return false;
 	}
 
-	return true;
+	return false;
 })();
 
 let monospaceAssumptionsAreValid = true;
@@ -550,20 +550,20 @@ class RenderedViewLine implements IRenderedViewLine {
 		if (!this.domNode) {
 			return null;
 		}
-		if (this._pixelOffsetCache !== null) {
-			// the text is LTR
-			const startOffset = this._readPixelOffset(this.domNode, lineNumber, startColumn, context);
-			if (startOffset === -1) {
-				return null;
-			}
+		// if (this._pixelOffsetCache !== null) {
+		// 	// the text is LTR
+		// 	const startOffset = this._readPixelOffset(this.domNode, lineNumber, startColumn, context);
+		// 	if (startOffset === -1) {
+		// 		return null;
+		// 	}
 
-			const endOffset = this._readPixelOffset(this.domNode, lineNumber, endColumn, context);
-			if (endOffset === -1) {
-				return null;
-			}
+		// 	const endOffset = this._readPixelOffset(this.domNode, lineNumber, endColumn, context);
+		// 	if (endOffset === -1) {
+		// 		return null;
+		// 	}
 
-			return [new FloatHorizontalRange(startOffset, endOffset - startOffset)];
-		}
+		// 	return [new FloatHorizontalRange(startOffset, endOffset - startOffset)];
+		// }
 
 		return this._readVisibleRangesForRange(this.domNode, lineNumber, startColumn, endColumn, context);
 	}
@@ -583,41 +583,42 @@ class RenderedViewLine implements IRenderedViewLine {
 
 	protected _readPixelOffset(domNode: FastDomNode<HTMLElement>, lineNumber: number, column: number, context: DomReadingContext): number {
 		if (this._characterMapping.length === 0) {
-			// This line has no content
-			if (this._containsForeignElements === ForeignElementType.None) {
-				// We can assume the line is really empty
-				return 0;
-			}
-			if (this._containsForeignElements === ForeignElementType.After) {
-				// We have foreign elements after the (empty) line
-				return 0;
-			}
-			if (this._containsForeignElements === ForeignElementType.Before) {
-				// We have foreign elements before the (empty) line
-				return this.getWidth(context);
-			}
-			// We have foreign elements before & after the (empty) line
-			const readingTarget = this._getReadingTarget(domNode);
-			if (readingTarget.firstChild) {
-				context.markDidDomLayout();
-				return (<HTMLSpanElement>readingTarget.firstChild).offsetWidth;
-			} else {
-				return 0;
-			}
+			return domNode.domNode.offsetWidth;
+			// // This line has no content
+			// if (this._containsForeignElements === ForeignElementType.None) {
+			// 	// We can assume the line is really empty
+			// 	return 0;
+			// }
+			// if (this._containsForeignElements === ForeignElementType.After) {
+			// 	// We have foreign elements after the (empty) line
+			// 	return 0;
+			// }
+			// if (this._containsForeignElements === ForeignElementType.Before) {
+			// 	// We have foreign elements before the (empty) line
+			// 	return this.getWidth(context);
+			// }
+			// // We have foreign elements before & after the (empty) line
+			// const readingTarget = this._getReadingTarget(domNode);
+			// if (readingTarget.firstChild) {
+			// 	context.markDidDomLayout();
+			// 	return (<HTMLSpanElement>readingTarget.firstChild).offsetWidth;
+			// } else {
+			// 	return 0;
+			// }
 		}
 
-		if (this._pixelOffsetCache !== null) {
-			// the text is LTR
+		// if (this._pixelOffsetCache !== null) {
+		// 	// the text is LTR
 
-			const cachedPixelOffset = this._pixelOffsetCache[column];
-			if (cachedPixelOffset !== -1) {
-				return cachedPixelOffset;
-			}
+		// 	const cachedPixelOffset = this._pixelOffsetCache[column];
+		// 	if (cachedPixelOffset !== -1) {
+		// 		return cachedPixelOffset;
+		// 	}
 
-			const result = this._actualReadPixelOffset(domNode, lineNumber, column, context);
-			this._pixelOffsetCache[column] = result;
-			return result;
-		}
+		// 	const result = this._actualReadPixelOffset(domNode, lineNumber, column, context);
+		// 	this._pixelOffsetCache[column] = result;
+		// 	return result;
+		// }
 
 		return this._actualReadPixelOffset(domNode, lineNumber, column, context);
 	}
@@ -632,10 +633,10 @@ class RenderedViewLine implements IRenderedViewLine {
 			return r[0].left;
 		}
 
-		if (column === this._characterMapping.length && this._isWhitespaceOnly && this._containsForeignElements === ForeignElementType.None) {
-			// This branch helps in the case of whitespace only lines which have a width set
-			return this.getWidth(context);
-		}
+		// if (column === this._characterMapping.length && this._isWhitespaceOnly && this._containsForeignElements === ForeignElementType.None) {
+		// 	// This branch helps in the case of whitespace only lines which have a width set
+		// 	return this.getWidth(context);
+		// }
 
 		const domPosition = this._characterMapping.getDomPosition(column);
 
